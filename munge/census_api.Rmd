@@ -1,0 +1,136 @@
+---
+title: "Utilizing the census API fro Decennial CD113"
+author: "JP"
+date: "5/10/2019"
+output: html_document
+---
+
+```{r}
+library(httr)
+library(jsonlite)
+library(lubridate)
+
+options(stringsAsFactors = FALSE)
+```
+
+Failed attempt to access API
+```{r}
+# Retrieving valid classifiers ####
+url  <- "https://api.census.gov"
+path <- "data/2010/dec/cd113"
+
+raw_result <- GET(url = url, path = path)
+
+raw_result$status_code # 200 means good connection 
+# see https://en.wikipedia.org/wiki/List_of_HTTP_status_codes for code meanings
+
+names(raw_result)
+```
+
+```{r}
+head(raw_result$content)
+
+head(raw_result$content) # provides unicode
+
+this_raw_content <- rawToChar(raw_result$content)
+
+nchar(this_raw_content)
+
+substr(this_raw_content, 1, 100)
+
+this_content <- fromJSON(this_raw_content)
+length(this_content)
+this_content[[1]]
+this_content[["dataset"]]
+```
+
+```{r}
+
+this.content.df <- do.call(
+  what = "rbind", # bind all df that follow
+  args = lapply(this_content, as.data.frame) # convert ea list element to df
+)
+
+head(this.content.df)
+
+# Extracting energy classifiers ####
+headClass <- 
+  substr(
+    x = this.content.df[, "directory_code"],
+    start = 1,
+    stop  = 2
+  )
+
+head(headClass)
+
+isEnergy <- headClass == "12"
+table(isEnergy) 
+  
+relevant.df <- this.content.df[isEnergy, ]
+  
+relevant.dc <- relevant.df[, "directory_code"]
+
+# Retrieving metadata ####
+makeQuery <- function(classifier) {
+  this.query <- list(classifier)
+  names(this.query) <- "dc"
+  return(this.query)
+}
+
+queries <- lapply(as.list(relevant.dc), makeQuery)
+
+this.raw.result <- GET(url = url, path = path, query = queries[[1]])
+
+this.result <- fromJSON(rawToChar(this.raw.result$content))
+
+names(this.result[[1]])
+
+all.results <- vector(mode = "list", length = length(relevant.dc))
+
+for (i in 1:length(all.results)) {
+  this.query       <- queries[[i]]
+  this.raw.answer  <- GET(url = url, path = path, query = this.query)
+  this.answer      <- fromJSON(rawToChar(this.raw.answer$content))
+  all.results[[i]] <- this.answer
+  message(".", appendLF = FALSE)
+  Sys.sleep(time = 1)
+}
+  
+ 
+parseAnswer <- function(answer) {
+  this.form   <- answer$form
+  this.date   <- answer$date
+  this.effect <- answer$of_effect
+  result <- data.frame(form   = this.form,
+                       date   = this.date,
+                       effect = this.effect)
+  return(result)
+}
+
+
+parseAnswer(all.results[[1]][[2]])
+
+parsedAnswers <- 
+  lapply(all.results, function(x) do.call("rbind", lapply(x, parseAnswer)))
+
+finalResult <- do.call("rbind", parsedAnswers)
+class(finalResult) 
+
+head(finalResult)
+
+# Working with dates ####
+date.character <- "1981-05-02"
+date.POSIXct <- ymd(date.character)
+
+class(date.character)
+
+class(date.POSIXct) 
+
+finalResult$date <- ymd(finalResult$date)
+finalResult$effect <- ymd(finalResult$effect)
+
+finalResult$effectDay <- wday(finalResult$effect, label = TRUE)
+table(finalResult$effectDay) 
+
+```
+

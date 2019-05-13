@@ -1,0 +1,168 @@
+---
+title: "tidycensus attempt"
+author: "JP"
+date: "5/12/2019"
+output: html_document
+---
+
+```{r message=FALSE}
+library(magrittr)
+library(scales)
+library(schoolfundr)
+library(tidycensus)
+library(tidyverse)
+
+source_file_paths()
+source(here::here("strings.R"))
+```
+
+```{r}
+ds_vars_dec_2010_cd113 <- load_variables(2010, "dec/cd113", cache = F) 
+
+# View(ds_vars_dec_2010_cd113)
+
+ds_vars_rent <- 
+  ds_vars_dec_2010_cd113 %>% 
+  filter(
+    str_detect( 
+      label, 
+      regex("rent", ignore_case = TRUE)
+    )
+  )
+```
+
+Wondering what !! and Tenure refer to. "Total!!Renter occupied" and concept == "TENURE", which I assume means the number "units" occupied by renters because the definition of tenure focusses on *units* rather than *people* (see below). 
+
+From [Census dictionary](https://www.census.gov/housing/hvs/definitions.pdf)
+"**Tenure.** A unit is owner occupied if the owner or co-owner lives in the unit, even if it is mortgaged or not fully paid for. A cooperative or condominium unit is "owner occupied" only if the owner or co-owner lives in it. All other occupied units are classified as "renter occupied," including units rented for cash rent and those occupied without payment of cash rent."
+
+## rental population by census tract in CA
+```{r}
+ds_vars_dec_2010_cd113 %>% 
+  filter(str_detect(concept, "TOTAL POPULATION")) %>% 
+  filter(str_detect(label, "Owned")) %>% count(label)
+
+# H010001 # TOTAL POPULATION IN OCCUPIED HOUSING UNITS
+# P001001 # Total population (may include homeless?)
+# How are the institutionalized claimed? 
+
+my_vars <- 
+  c(total = "H010001", renters = "H011004", own_mortgage = "H011002", own_outright = "H011003")
+```
+
+```{r}
+ds_ca <- 
+  get_decennial(
+    geography = "state", state = "CA", 
+    variables = my_vars, year = 2010
+  ) %>% 
+  mutate(
+    var_agg = case_when(
+      str_detect(variable, "^own") ~ "owner",
+      TRUE ~ variable
+    )
+  ) %>% 
+  group_by(var_agg) %>% 
+  summarise(value = sum(value)) 
+
+# Check
+ds_ca %>% 
+  arrange(-value) %>% 
+  mutate(check = first(value) - value)
+```
+
+## rental population by census tract in CA
+```{r}
+ds_ca_tract <- 
+  get_decennial(
+    geography = "tract", state = "CA", 
+    variables = my_vars, year = 2010,
+    geometry = TRUE
+  ) 
+
+ds_ca_tract %<>% 
+  mutate(
+    variable = case_when(
+      str_detect(variable, "^own") ~ "owner",
+      TRUE ~ variable
+    )
+  ) 
+
+ds_ca_tract %<>% 
+  group_by(NAME, variable) %>% 
+    mutate(value = sum(value)) %>% 
+  ungroup() %>% 
+  unique()
+
+ds_ca_tract %<>% 
+  separate(NAME, into = c("tract", "county", "state"), sep = ",", extra = "warn") %>% 
+  mutate(
+    county = str_to_lower(county) %>% str_remove_all("county") %>% str_trim(),
+    census_tract = str_remove_all(tract, "Census Tract") 
+  ) %>% 
+  filter(county %in% bay_area_counties) %>%  
+  select(GEOID, census_tract, county, pop_group = variable, population = value, geometry)
+```
+
+```{r}
+ds_ca_tract %<>% 
+  filter(pop_group != "total") %>% 
+  group_by(census_tract) %>% 
+    mutate(percent = population / sum(population)) %>% 
+  ungroup()
+```
+
+```{r}
+ds_ca_tract %>% 
+  filter(
+    pop_group == "renters", 
+    county %in% c("san mateo", "santa clara")
+  ) %>% 
+  ggplot(aes(fill = percent)) + 
+  geom_sf(color = NA) + 
+  scale_fill_viridis_c(
+    option = "magma", 
+    breaks = pretty_breaks(5), 
+    labels = percent_format()
+  )
+```
+
+```{r out.width="100%}
+ds_ca_tract %>% 
+  filter(
+    pop_group == "owner", 
+    county == "san mateo",
+    !str_detect(census_tract, "6135.01"),
+    !str_detect(census_tract, "6135.02"),
+    !str_detect(census_tract, "6136"),
+    !str_detect(census_tract, "6031"),
+    !str_detect(census_tract, "6032"),
+    !str_detect(census_tract, "6033"),
+    !str_detect(census_tract, "6034"),
+    !str_detect(census_tract, "6132"),
+    !str_detect(census_tract, "6134"),
+    !str_detect(census_tract, "6137"),
+    !str_detect(census_tract, "6138")
+  ) %>% 
+  ggplot(aes(fill = percent)) + 
+  geom_sf(color = NA) + 
+  scale_fill_viridis_c(
+    option = "magma", 
+    breaks = pretty_breaks(5), 
+    labels = percent_format()
+  ) + 
+  labs(fill = "Percent\nOwners") # + 
+  # geom_sf_text(aes(label = census_tract), color = "gray")
+```
+
+# Can I add town outlines to the above map? 
+Explore https://www.r-spatial.org/r/2018/10/25/ggplot2-sf-2.html
+```{r}
+
+```
+
+
+For help with tidycensus package see: 
+https://github.com/walkerke/tidycensus/issues/129
+https://mattherman.info/blog/tidycensus-mult/
+https://notary.cdn.sos.ca.gov/forms/notary-county-codes.pdf
