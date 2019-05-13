@@ -1,0 +1,8 @@
+---
+title: "Datasets to be explored"
+author: "JP"
+date: "5/12/2019"
+output: html_document
+---
+
+[educational attainment map](http://personal.tcu.edu/kylewalker/maps/education/colorsafe/#10.88/37.7191/-122.3736)

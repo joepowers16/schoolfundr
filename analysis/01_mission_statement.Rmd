@@ -1,0 +1,32 @@
+---
+title: "Mission Statement"
+author: "JP"
+date: "5/12/2019"
+output: html_document
+---
+
+# Overview
+
+We are at the edge of our budget to afford a home in a good school district that is also a desireable place to live in terms of commuting and community. 
+
+This project hopes to explore some latent signals of school district quality in the hopes of confirming that some desireable neighborhoods with poorly rated school districts are actually nice places to live and raise a family. 
+
+I would like to start off by understanding how schools are currently rated for their quality, and what latent factors may be missed by this broad evaluation algorithm. 
+
+For instance Redwood City tests poorly, but these averages do not adjust for the high ESL rates in RWC. How does performance among non-ESL students in RWC compare to other districts? What colleges do the best students at each school attend? 
+
+Is there a history of approving funding for schools? If not, is the population in an area trending toward support for approving such funding? What do the populations of districts like Burlingame look like? By what margin are school funding measures approved in each Bay Area district?
+
+Our real estate agent also mentioned that the ratio of apartments to single family homes can carry a lot of signal or atleast be a bloackage to an area developing support for better schools. Confirm this. 
+
+# Where to begin?
+
+I think I'd like to begin with what data are publicly available.
+
+## [Census API](https://api.census.gov/data.html)
+### Tables of interest
+`Time Series Economic Indicators Time Series -: Housing Vacancies and Homeownership`
+
+`Decennial CD113` indicates renter v owner
+
+The [educational attainment map](http://personal.tcu.edu/kylewalker/maps/education/colorsafe/#10.88/37.7191/-122.3736) could be very telling about the density of intellectuals in a given area. 

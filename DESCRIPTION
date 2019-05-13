@@ -1,0 +1,18 @@
+Package: schoolfundr
+Type: Package
+Title: A package to help me pick between schools
+Version: 0.1.0
+Imports:
+  breadcrumbs,
+  dplyr,
+  ggplot2,
+  purrr,
+  scales
+Suggests:
+Author: Joseph T. Powers
+Maintainer: Joseph T. Powers <joepowers16@gmail.com>
+Description: A package to help me pick between schools
+License: MIT + LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
