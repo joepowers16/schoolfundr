@@ -156,11 +156,10 @@ ds_ca_tract %>%
 ```
 
 # Can I add town outlines to the above map? 
-Explore https://www.r-spatial.org/r/2018/10/25/ggplot2-sf-2.html
+Explore https://www.r-spatial.org/r/2018/10/25/ggplot2-sf-2.html.
 ```{r}
 
 ```
-
 
 For help with tidycensus package see: 
 https://github.com/walkerke/tidycensus/issues/129
